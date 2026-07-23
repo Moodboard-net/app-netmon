@@ -51,6 +51,13 @@ class DeviceCredential(Base, PkMixin, TimestampMixin):
 
     device: Mapped["Device"] = relationship()
 
+    def __repr__(self) -> str:
+        return (
+            f"DeviceCredential(id={self.id!r}, device_id={self.device_id!r}, "
+            f"auth_method={self.auth_method!r}, username={self.username!r}, "
+            "secret_ciphertext=***REDACTED***)"
+        )
+
 
 class DeviceCapability(Base, TimestampMixin):
     __tablename__ = "device_capabilities"

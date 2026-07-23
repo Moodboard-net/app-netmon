@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -9,6 +10,7 @@ class Settings(BaseSettings):
 
     app_name: str = "NetMon"
     environment: str = "development"
+    process_role: Literal["api", "worker"] = "api"
 
     postgres_host: str = Field(min_length=1)
     postgres_port: int
@@ -19,6 +21,9 @@ class Settings(BaseSettings):
     redis_host: str = Field(min_length=1)
     redis_port: int
     redis_db: int = 0
+
+    credential_encryption_key: str = Field(min_length=1)
+    credential_encryption_key_id: str = "v1"
 
     @property
     def database_url(self) -> str:
