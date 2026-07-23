@@ -5,14 +5,12 @@ Revises:
 Create Date: 2026-07-23 04:25:35.011109
 
 """
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
-
-from app.services.partitioning import create_partition_sql
 
 # revision identifiers, used by Alembic.
 revision: str = '650ea4a2ebd5'
@@ -170,11 +168,24 @@ def upgrade() -> None:
     # Partisi awal: bulan berjalan + bulan berikutnya, supaya siap menerima data
     # segera setelah migrasi ini selesai. Partisi bulan-bulan selanjutnya dibuat
     # lewat app.services.partitioning (dipanggil oleh task terjadwal di masa depan).
+    # DDL ditulis inline (bukan import dari app.services.partitioning) supaya
+    # migrasi ini tetap self-contained dan tidak berubah kalau helper itu berubah.
     now = datetime.now(UTC)
     for offset in (0, 1):
         year = now.year + (now.month - 1 + offset) // 12
         month = (now.month - 1 + offset) % 12 + 1
-        op.execute(create_partition_sql('interface_metrics', year, month))
+        start = date(year, month, 1)
+        end = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+        op.execute(
+            f'CREATE TABLE IF NOT EXISTS "interface_metrics_{year:04d}_{month:02d}" '
+            f'PARTITION OF "interface_metrics" '
+            f"FOR VALUES FROM ('{start.isoformat()}') TO ('{end.isoformat()}')"
+        )
+
+    # DEFAULT partition sebagai jaring pengaman: kalau task pembuat partisi
+    # bulanan belum berjalan/telat, baris di luar rentang partisi eksplisit
+    # tetap tertampung di sini alih-alih membuat INSERT gagal total.
+    op.execute('CREATE TABLE IF NOT EXISTS "interface_metrics_default" PARTITION OF "interface_metrics" DEFAULT')
 
     op.create_table('neighbors',
     sa.Column('device_id', sa.BigInteger(), nullable=False),
