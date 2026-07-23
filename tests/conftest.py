@@ -1,3 +1,4 @@
+import base64
 import os
 
 import pytest
@@ -9,6 +10,7 @@ os.environ.setdefault("POSTGRES_PASSWORD", "test")
 os.environ.setdefault("POSTGRES_DB", "test")
 os.environ.setdefault("REDIS_HOST", "localhost")
 os.environ.setdefault("REDIS_PORT", "6379")
+os.environ.setdefault("CREDENTIAL_ENCRYPTION_KEY", base64.b64encode(b"0" * 32).decode())
 
 
 @pytest.fixture

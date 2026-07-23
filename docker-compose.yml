@@ -19,6 +19,8 @@ services:
     command: celery -A app.tasks.celery_app worker --loglevel=info
     env_file:
       - .env
+    environment:
+      PROCESS_ROLE: worker
     volumes:
       - .:/app
     depends_on:
@@ -32,6 +34,8 @@ services:
     command: celery -A app.tasks.celery_app beat --loglevel=info
     env_file:
       - .env
+    environment:
+      PROCESS_ROLE: worker
     volumes:
       - .:/app
     depends_on:
