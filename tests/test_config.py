@@ -46,3 +46,31 @@ def test_get_settings_fails_fast_with_clear_message(monkeypatch, tmp_path):
 
     with pytest.raises(RuntimeError, match="postgres_password"):
         get_settings()
+
+
+def test_settings_rejects_non_base64_encryption_key(monkeypatch, tmp_path):
+    _set_required_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("CREDENTIAL_ENCRYPTION_KEY", "not-valid-base64!!!")
+
+    with pytest.raises(ValidationError):
+        Settings()
+
+
+def test_settings_rejects_encryption_key_with_wrong_length(monkeypatch, tmp_path):
+    import base64
+
+    _set_required_env(monkeypatch, tmp_path)
+    # 16 byte (AES-128), bukan 32 byte (AES-256) yang dibutuhkan.
+    monkeypatch.setenv("CREDENTIAL_ENCRYPTION_KEY", base64.b64encode(b"0" * 16).decode())
+
+    with pytest.raises(ValidationError):
+        Settings()
+
+
+def test_get_settings_fails_fast_with_clear_message_on_bad_encryption_key(monkeypatch, tmp_path):
+    _set_required_env(monkeypatch, tmp_path)
+    monkeypatch.setenv("CREDENTIAL_ENCRYPTION_KEY", "not-valid-base64!!!")
+    get_settings.cache_clear()
+
+    with pytest.raises(RuntimeError, match="credential_encryption_key"):
+        get_settings()
